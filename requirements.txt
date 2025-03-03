@@ -1,17 +1,17 @@
 # Dependências principais
-streamlit==1.28.0  # Versão mais estável para deploy
-numpy==1.23.5      # Versão compatível com ambientes de produção
-pandas==2.0.0      # Versão estável para análise de dados
+streamlit
+numpy
+pandas
 
 # Bibliotecas de visualização
-matplotlib==3.5.3  # Versão mais estável para visualizações
-seaborn==0.12.0    # Versão compatível com matplotlib 3.5.3
-altair==4.2.2      # Versão recomendada para uso com Streamlit
-plotly==5.13.1     # Versão estável para gráficos interativos
+matplotlib
+seaborn
+altair
+plotly
 bokeh==2.4.3       # OBRIGATÓRIO: Única versão suportada pelo Streamlit
-pydeck==0.8.0      # Versão para visualizações geoespaciais
-graphviz==0.20.1   # Biblioteca para diagramas
+pydeck
+graphviz
 
 # Bibliotecas para análise de dados
-scikit-learn==1.2.2  # Versão estável para classificação e clustering
+scikit-learn
 
