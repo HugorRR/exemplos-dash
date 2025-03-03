@@ -29,33 +29,47 @@ def update_visit_counter():
     current_time = datetime.datetime.now()
     current_time_str = current_time.strftime("%d/%m/%Y %H:%M:%S")
     
-    # Se o arquivo não existir, cria um novo com valores iniciais
-    if not os.path.exists(COUNTER_FILE):
-        visit_df = pd.DataFrame({
-            'visits': [1],
-            'first_visit': [current_time_str],
-            'last_visit': [current_time_str]
-        })
-        visit_df.to_csv(COUNTER_FILE, index=False)
-        return 1, current_time_str, current_time_str
-    
-    # Caso contrário, lê o arquivo existente e atualiza
     try:
-        visit_df = pd.read_csv(COUNTER_FILE)
-        visits = visit_df['visits'].iloc[0] + 1
-        first_visit = visit_df['first_visit'].iloc[0]
+        # Se o arquivo não existir, cria um novo com valores iniciais
+        if not os.path.exists(COUNTER_FILE):
+            try:
+                visit_df = pd.DataFrame({
+                    'visits': [1],
+                    'first_visit': [current_time_str],
+                    'last_visit': [current_time_str]
+                })
+                visit_df.to_csv(COUNTER_FILE, index=False)
+                return 1, current_time_str, current_time_str
+            except PermissionError:
+                # Em ambientes de deploy, pode haver restrição de escrita
+                return 1, current_time_str, current_time_str
         
-        # Atualiza o contador e a data da última visita
-        visit_df['visits'] = visits
-        visit_df['last_visit'] = current_time_str
-        
-        # Salva os dados atualizados
-        visit_df.to_csv(COUNTER_FILE, index=False)
-        return visits, first_visit, current_time_str
+        # Caso contrário, lê o arquivo existente e atualiza
+        try:
+            visit_df = pd.read_csv(COUNTER_FILE)
+            visits = visit_df['visits'].iloc[0] + 1
+            first_visit = visit_df['first_visit'].iloc[0]
+            
+            # Atualiza o contador e a data da última visita
+            visit_df['visits'] = visits
+            visit_df['last_visit'] = current_time_str
+            
+            # Salva os dados atualizados
+            try:
+                visit_df.to_csv(COUNTER_FILE, index=False)
+            except PermissionError:
+                # Em caso de erro de permissão, retorna os valores atualizados sem salvar
+                pass
+                
+            return visits, first_visit, current_time_str
+        except Exception as e:
+            # Se ocorrer erro na leitura, começa um novo contador
+            return 1, current_time_str, current_time_str
     except Exception as e:
-        # Se ocorrer algum erro, retorna valores padrão
-        st.error(f"Erro ao atualizar contador: {e}")
-        return 1, current_time_str, current_time_str
+        # Tratamento de erro genérico para garantir que a aplicação continue
+        # mesmo se o contador falhar
+        st.warning(f"Nota: Contador temporariamente indisponível em modo de demonstração")
+        return "-", "-", "-"
 
 # Obtém as estatísticas de visitas
 visits, first_visit, last_visit = update_visit_counter()
@@ -621,12 +635,45 @@ with col1:
     )
     
     if st.button("Gerar Relatório PDF"):
+        # Criar texto do relatório com base nas opções selecionadas
+        report_content = "RELATÓRIO DE VISUALIZAÇÕES DE DADOS\n\n"
+        report_content += f"Gerado em: {datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')}\n\n"
+        
+        if "Análise comparativa das bibliotecas" in report_options:
+            report_content += "ANÁLISE COMPARATIVA DAS BIBLIOTECAS\n"
+            report_content += "- Gráficos Nativos: Implementação rápida e fácil, ideal para prototipagem\n"
+            report_content += "- Matplotlib/Seaborn: Controle detalhado, grande comunidade, ideal para publicações científicas\n"
+            report_content += "- Altair/Vega-Lite: Sintaxe declarativa, interatividade elegante\n"
+            report_content += "- Plotly: Alta interatividade, gráficos 3D, dashboard-ready\n"
+            report_content += "- Bokeh: Interatividade para web, design para aplicações\n"
+            report_content += "- PyDeck/GraphViz: Especializados para visualizações geoespaciais e diagramas\n\n"
+        
+        if "Recomendações para implementação" in report_options:
+            report_content += "RECOMENDAÇÕES PARA IMPLEMENTAÇÃO\n"
+            report_content += "1. Para protótipos rápidos: use os gráficos nativos do Streamlit\n"
+            report_content += "2. Para análises exploratórias detalhadas: use Plotly ou Altair\n"
+            report_content += "3. Para publicações científicas: use Matplotlib/Seaborn\n"
+            report_content += "4. Para mapas e visualizações geoespaciais: use PyDeck\n"
+            report_content += "5. Para diagramas e gráficos de rede: use Graphviz\n\n"
+        
+        if "Estatísticas de uso" in report_options:
+            try:
+                if os.path.exists("visit_counter.csv"):
+                    visit_df = pd.read_csv("visit_counter.csv")
+                    report_content += "ESTATÍSTICAS DE USO\n"
+                    report_content += f"Total de visualizações: {visit_df['visits'].iloc[0]}\n"
+                    report_content += f"Primeira visita: {visit_df['first_visit'].iloc[0]}\n"
+                    report_content += f"Última visita: {visit_df['last_visit'].iloc[0]}\n\n"
+            except:
+                report_content += "ESTATÍSTICAS DE USO\n"
+                report_content += "Estatísticas não disponíveis no modo de demonstração\n\n"
+        
         st.success("Relatório gerado com sucesso! Você pode baixá-lo usando o botão abaixo.")
         st.download_button(
-            label="Baixar Relatório PDF",
-            data=b"Dados simulados de um relatorio PDF",  # Usando apenas caracteres ASCII
-            file_name="relatorio_visualizacoes_dados.pdf",
-            mime="application/pdf"
+            label="Baixar Relatório",
+            data=report_content,
+            file_name=f"relatorio_visualizacoes_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
+            mime="text/plain"
         )
 
 with col2:
@@ -639,29 +686,36 @@ with col2:
     feedback_comments = st.text_area("Comentários ou sugestões")
     
     if st.button("Enviar Feedback"):
-        # Aqui seria implementada a lógica para salvar o feedback
-        st.success(f"Obrigado pelo seu feedback! Avaliação: {feedback_rating}/5")
+        feedback_file = "feedback.csv"
+        feedback_time = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
         
-        # Criar registro de feedback
-        if feedback_name or feedback_email or feedback_comments:
-            feedback_file = "feedback.csv"
-            feedback_time = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-            
-            feedback_data = {
-                'data': [feedback_time],
-                'nome': [feedback_name if feedback_name else "Anônimo"],
-                'email': [feedback_email if feedback_email else "Não informado"],
-                'avaliacao': [feedback_rating],
-                'comentarios': [feedback_comments if feedback_comments else "Sem comentários"]
-            }
-            
-            feedback_df = pd.DataFrame(feedback_data)
-            
+        feedback_data = {
+            'data': [feedback_time],
+            'nome': [feedback_name if feedback_name else "Anônimo"],
+            'email': [feedback_email if feedback_email else "Não informado"],
+            'avaliacao': [feedback_rating],
+            'comentarios': [feedback_comments if feedback_comments else "Sem comentários"]
+        }
+        
+        feedback_df = pd.DataFrame(feedback_data)
+        
+        try:
             # Verificar se o arquivo já existe para anexar ou criar novo
             if os.path.exists(feedback_file):
-                feedback_df.to_csv(feedback_file, mode='a', header=False, index=False)
+                try:
+                    feedback_df.to_csv(feedback_file, mode='a', header=False, index=False)
+                except PermissionError:
+                    pass  # Ignora erro de permissão no modo de deploy
             else:
-                feedback_df.to_csv(feedback_file, index=False)
+                try:
+                    feedback_df.to_csv(feedback_file, index=False)
+                except PermissionError:
+                    pass  # Ignora erro de permissão no modo de deploy
+            
+            st.success(f"Obrigado pelo seu feedback! Avaliação: {feedback_rating}/5")
+        except:
+            # Sempre mostra sucesso para o usuário final, mesmo se não conseguir salvar o arquivo
+            st.success(f"Obrigado pelo seu feedback! Avaliação: {feedback_rating}/5 (Modo de demonstração)")
 
 # Rodapé com informações da versão
 st.markdown("---")
