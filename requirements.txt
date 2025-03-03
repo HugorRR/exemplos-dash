@@ -1,17 +1,22 @@
+# Python 3.11 é recomendado - Bokeh 2.4.3 tem problemas com Python 3.12+
+
 # Dependências principais
-streamlit
-numpy==1.24.3
-pandas
+streamlit==1.28.0  # Versão mais estável para deploy
+numpy==1.24.3      # Versão compatível com ambientes de produção e Python 3.11
+pandas==2.0.0      # Versão estável para análise de dados
 
 # Bibliotecas de visualização
-matplotlib
-seaborn
-altair
-plotly
+matplotlib==3.7.1  # Versão compatível com Python 3.11
+seaborn==0.12.2    # Compatível com matplotlib 3.7.1
+altair==4.2.2      # Versão recomendada para uso com Streamlit
+plotly==5.13.1     # Versão estável para gráficos interativos
 bokeh==2.4.3       # OBRIGATÓRIO: Única versão suportada pelo Streamlit
-pydeck
-graphviz
+pydeck==0.8.0      # Versão para visualizações geoespaciais
+graphviz==0.20.1   # Biblioteca para diagramas
 
 # Bibliotecas para análise de dados
-scikit-learn
+scikit-learn==1.2.2  # Versão estável para classificação e clustering
 
+# NOTA: Este arquivo foi atualizado para resolver problemas de compatibilidade no deploy
+# ATENÇÃO: Bokeh 2.4.3 é incompatível com Python 3.12, use Python 3.11 ou inferior!
+# Se encontrar erros, execute: pip install -r requirements.txt --force-reinstall 
