@@ -11,6 +11,8 @@ import pydeck as pdk
 import graphviz
 import seaborn as sns
 from sklearn.datasets import make_blobs
+import datetime
+import os
 
 # Set page configuration
 st.set_page_config(
@@ -19,8 +21,57 @@ st.set_page_config(
     layout="wide"
 )
 
-# Header
+# Implementação do contador de acessos persistente
+def update_visit_counter():
+    # Arquivo que armazenará as estatísticas de visitas
+    COUNTER_FILE = "visit_counter.csv"
+    
+    current_time = datetime.datetime.now()
+    current_time_str = current_time.strftime("%d/%m/%Y %H:%M:%S")
+    
+    # Se o arquivo não existir, cria um novo com valores iniciais
+    if not os.path.exists(COUNTER_FILE):
+        visit_df = pd.DataFrame({
+            'visits': [1],
+            'first_visit': [current_time_str],
+            'last_visit': [current_time_str]
+        })
+        visit_df.to_csv(COUNTER_FILE, index=False)
+        return 1, current_time_str, current_time_str
+    
+    # Caso contrário, lê o arquivo existente e atualiza
+    try:
+        visit_df = pd.read_csv(COUNTER_FILE)
+        visits = visit_df['visits'].iloc[0] + 1
+        first_visit = visit_df['first_visit'].iloc[0]
+        
+        # Atualiza o contador e a data da última visita
+        visit_df['visits'] = visits
+        visit_df['last_visit'] = current_time_str
+        
+        # Salva os dados atualizados
+        visit_df.to_csv(COUNTER_FILE, index=False)
+        return visits, first_visit, current_time_str
+    except Exception as e:
+        # Se ocorrer algum erro, retorna valores padrão
+        st.error(f"Erro ao atualizar contador: {e}")
+        return 1, current_time_str, current_time_str
+
+# Obtém as estatísticas de visitas
+visits, first_visit, last_visit = update_visit_counter()
+
+# Header com contador
 st.title("📊 Dashboard de Tipos de Gráficos")
+
+# Contador de acessos com design aprimorado
+col1, col2, col3 = st.columns([1, 1, 1])
+with col1:
+    st.metric(label="👁️ Visualizações", value=visits)
+with col2:
+    st.caption("🕒 Primeira visita: " + first_visit)
+with col3:
+    st.caption("🕒 Última visita: " + last_visit)
+
 st.subheader("Demonstração de todos os tipos de gráficos disponíveis no Streamlit")
 
 # Introdução com explicação
@@ -551,4 +602,67 @@ st.info("""
 1. Escolher a biblioteca mais adequada para os requisitos específicos do seu projeto
 2. Implementar visualizações consistentes utilizando a biblioteca escolhida
 3. Considerar a combinação de diferentes bibliotecas para diferentes tipos de visualização
-""") 
+""")
+
+# Adicionar seção de exportação de relatório e feedback
+st.markdown("---")
+st.header("Relatório e Feedback")
+
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("Exportar Relatório")
+    st.write("Gere um relatório com os principais insights e recomendações:")
+    
+    report_options = st.multiselect(
+        "Selecione o conteúdo a ser incluído no relatório:",
+        ["Análise comparativa das bibliotecas", "Recomendações para implementação", "Exemplos de códigos", "Estatísticas de uso"],
+        default=["Análise comparativa das bibliotecas", "Recomendações para implementação"]
+    )
+    
+    if st.button("Gerar Relatório PDF"):
+        st.success("Relatório gerado com sucesso! Você pode baixá-lo usando o botão abaixo.")
+        st.download_button(
+            label="Baixar Relatório PDF",
+            data=b"Dados simulados de um relatorio PDF",  # Usando apenas caracteres ASCII
+            file_name="relatorio_visualizacoes_dados.pdf",
+            mime="application/pdf"
+        )
+
+with col2:
+    st.subheader("Feedback e Sugestões")
+    st.write("Ajude-nos a melhorar este dashboard:")
+    
+    feedback_name = st.text_input("Nome (opcional)")
+    feedback_email = st.text_input("Email (opcional)")
+    feedback_rating = st.slider("Como você avalia este dashboard?", 1, 5, 5)
+    feedback_comments = st.text_area("Comentários ou sugestões")
+    
+    if st.button("Enviar Feedback"):
+        # Aqui seria implementada a lógica para salvar o feedback
+        st.success(f"Obrigado pelo seu feedback! Avaliação: {feedback_rating}/5")
+        
+        # Criar registro de feedback
+        if feedback_name or feedback_email or feedback_comments:
+            feedback_file = "feedback.csv"
+            feedback_time = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+            
+            feedback_data = {
+                'data': [feedback_time],
+                'nome': [feedback_name if feedback_name else "Anônimo"],
+                'email': [feedback_email if feedback_email else "Não informado"],
+                'avaliacao': [feedback_rating],
+                'comentarios': [feedback_comments if feedback_comments else "Sem comentários"]
+            }
+            
+            feedback_df = pd.DataFrame(feedback_data)
+            
+            # Verificar se o arquivo já existe para anexar ou criar novo
+            if os.path.exists(feedback_file):
+                feedback_df.to_csv(feedback_file, mode='a', header=False, index=False)
+            else:
+                feedback_df.to_csv(feedback_file, index=False)
+
+# Rodapé com informações da versão
+st.markdown("---")
+st.caption(f"Dashboard de Tipos de Gráficos | Versão 1.0 | Última atualização: {datetime.date.today().strftime('%d/%m/%Y')}") 
